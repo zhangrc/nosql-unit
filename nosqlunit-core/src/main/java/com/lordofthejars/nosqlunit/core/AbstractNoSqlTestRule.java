@@ -235,22 +235,22 @@ public abstract class AbstractNoSqlTestRule implements MethodRule {
                 Class<?> annotatedClass = IOUtils
                         .getClassWithAnnotation(
                                 testClass,
-                                com.lordofthejars.nosqlunit.annotation.CustomComparisonStrategy.class);
+                                CustomComparisonStrategy.class);
                 return annotatedClass == null ? null
                         : annotatedClass
-                                .getAnnotation(com.lordofthejars.nosqlunit.annotation.CustomComparisonStrategy.class);
+                                .getAnnotation(CustomComparisonStrategy.class);
             }
 
-            private com.lordofthejars.nosqlunit.annotation.CustomInsertionStrategy getCustomInsertationStrategy() {
+            private CustomInsertionStrategy getCustomInsertationStrategy() {
 
                 Class<?> testClass = target.getClass();
                 Class<?> annotatedClass = IOUtils
                         .getClassWithAnnotation(
                                 testClass,
-                                com.lordofthejars.nosqlunit.annotation.CustomInsertionStrategy.class);
+                                CustomInsertionStrategy.class);
                 return annotatedClass == null ? null
                         : annotatedClass
-                                .getAnnotation(com.lordofthejars.nosqlunit.annotation.CustomInsertionStrategy.class);
+                                .getAnnotation(CustomInsertionStrategy.class);
             }
 
             private void assertExpectation(ShouldMatchDataSet shouldMatchDataSet)
@@ -258,24 +258,8 @@ public abstract class AbstractNoSqlTestRule implements MethodRule {
 
                 InputStream scriptContent = loadExpectedContentScript(method,
                         shouldMatchDataSet);
-
                 if (isNotEmptyStream(scriptContent)) {
                     getDatabaseOperation().databaseIs(scriptContent);
-                } else {
-
-                    final String suffix = EXPECTED_RESERVED_WORD + "."
-                            + getWorkingExtension();
-                    final String defaultClassLocation = DefaultClasspathLocationBuilder
-                            .defaultClassAnnotatedClasspathLocation(method);
-                    final String defaultMethodLocation = DefaultClasspathLocationBuilder
-                            .defaultMethodAnnotatedClasspathLocation(method,
-                                    defaultClassLocation, suffix);
-
-                    throw new IllegalArgumentException(
-                            "File specified in location or selective matcher property "
-                                    + " of ShouldMatchDataSet is not present, or no files matching default location. Valid default locations are: "
-                                    + defaultClassLocation + suffix + " or "
-                                    + defaultMethodLocation);
                 }
 
             }
@@ -288,6 +272,9 @@ public abstract class AbstractNoSqlTestRule implements MethodRule {
 
                 if (isNotEmptyString(location)) {
                     scriptContent = loadExpectedResultFromLocationAttribute(location);
+                    if (scriptContent == null ) {
+                        throwNoExpectFileException();
+                    }
                 } else {
 
                     SelectiveMatcher[] selectiveMatchers = shouldMatchDataSet
@@ -304,8 +291,27 @@ public abstract class AbstractNoSqlTestRule implements MethodRule {
                         scriptContent = loadExpectedResultFromDefaultLocation(
                                 method, shouldMatchDataSet);
                     }
+                    if (requiredSelectiveMatcher!= null && scriptContent == null ) {
+                        throwNoExpectFileException();
+                    }
                 }
                 return scriptContent;
+            }
+
+            private void throwNoExpectFileException() {
+                final String suffix = EXPECTED_RESERVED_WORD + "."
+                        + getWorkingExtension();
+                final String defaultClassLocation = DefaultClasspathLocationBuilder
+                        .defaultClassAnnotatedClasspathLocation(method);
+                final String defaultMethodLocation = DefaultClasspathLocationBuilder
+                        .defaultMethodAnnotatedClasspathLocation(method,
+                                defaultClassLocation, suffix);
+
+                throw new IllegalArgumentException(
+                        "File specified in location or selective matcher property "
+                                + " of ShouldMatchDataSet is not present, or no files matching default location. Valid default locations are: "
+                                + defaultClassLocation + suffix + " or "
+                                + defaultMethodLocation);
             }
 
             private boolean isSelectiveMatchersDefined(
